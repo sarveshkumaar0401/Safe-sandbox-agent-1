@@ -1,143 +1,435 @@
-# Safe Sandbox Code Execution Agent
+# Sandbox Agent
 
-A Safe Sandbox Code Execution Agent built using FastAPI, PydanticAI, Ollama (Qwen3), and Docker. The agent can intelligently choose tools, execute AI-generated Python code inside an isolated Docker container, save information, and retrieve stored reports.
+
+
+A secure AI-powered code execution and conversation management system built using FastAPI, PydanticAI, Ollama, Docker, PostgreSQL, and Gradio.
+
+
 
 ## Features
 
-- AI-powered tool selection using PydanticAI
-- Secure Python code execution inside Docker
-- Persistent report storage
-- Report retrieval
-- REST API using FastAPI
-- Interactive API documentation with Swagger UI
+
+
+* FastAPI REST API
+
+* PydanticAI Agent Integration
+
+* Ollama (Qwen3:8B) Local LLM
+
+* Secure Python Code Execution in Docker Sandbox
+
+* Tool Calling Support
+
+* PostgreSQL Conversation Storage
+
+* User Management using user_id
+
+* Conversation Memory using Database History
+
+* Token Usage Tracking
+
+* Input Tokens Tracking
+
+* Cached Input Tokens Tracking
+
+* Output Tokens Tracking
+
+* Cost Tracking (USD)
+
+* Gradio Admin Dashboard
+
+* Usage Analytics Dashboard
+
+
+
+---
+
+
 
 ## Architecture
 
-<img width="1024" height="1536" alt="image" src="https://github.com/user-attachments/assets/b938f102-1e3b-4441-9331-aa6fdf523558" />
 
-## Available Tools
 
-### run_python()
+User
 
-Generates and executes Python code safely inside a Docker container.
+↓
 
-Example:
+FastAPI
 
-Input:
-```
-Calculate factorial of 5
-```
+↓
 
-Output:
-```
-120
-```
+PydanticAI Agent
 
-### save_text()
+↓
 
-Stores text in the report file.
+Ollama (Qwen3:8B)
 
-Example:
+↓
 
-Input:
-```
-Save the text "Hello World"
-```
+Tool Selection
 
-### show_report()
 
-Displays the contents of the report file.
 
-Example:
+├── run_python()
 
-Input:
-```
-Show report
-```
+│ ↓
 
-## Tech Stack
+│ Docker Sandbox
 
-- FastAPI
-- PydanticAI
-- Ollama
-- Qwen3:8B
-- Docker
-- Python
+│
 
-## Installation
+├── save_text()
 
-### Clone Repository
+│ ↓
 
-```bash
-git clone https://github.com/YOUR_USERNAME/safe-sandbox-code-execution-agent.git
-cd safe-sandbox-code-execution-agent
-```
+│ File Storage
 
-### Install Dependencies
+│
 
-```bash
-pip install -r requirements.txt
-```
+└── show_report()
 
-### Pull Model
+↓
 
-```bash
-ollama pull qwen3:8b
-```
+Response
 
-### Start Ollama
 
-```bash
-ollama serve
-```
 
-### Run API
+---
 
-```bash
-uvicorn app:app --reload
-```
 
-## API Documentation
-
-Open:
-
-```
-http://127.0.0.1:8000/docs
-```
 
 ## Project Structure
 
+
+
 ```text
-safe-sandbox-code-execution-agent/
+
+Sandbox-Agent/
+
 │
+
 ├── app.py
+
 ├── agent.py
+
 ├── agent_tools.py
+
 ├── executor.py
+
 ├── file_tools.py
-├── report.txt
+
+├── db.py
+
+├── dashboard.py
+
+│
+
+├── reports/
+
+│
+
 ├── requirements.txt
+
+│
+
 └── README.md
+
 ```
 
-## Example Workflow
 
-User:
+
+## Database Schema
+
+
+
+### Users
+
+
+
+```sql
+
+CREATE TABLE users (
+
+    user_id VARCHAR(255) PRIMARY KEY,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+);
+
 ```
-Calculate factorial of 5
+
+
+
+### Messages
+
+
+
+```sql
+
+CREATE TABLE messages (
+
+    id SERIAL PRIMARY KEY,
+
+
+
+    user_id VARCHAR(255),
+
+
+
+    prompt TEXT,
+
+    response TEXT,
+
+
+
+    input_tokens INT,
+
+    cached_input_tokens INT,
+
+    output_tokens INT,
+
+
+
+    cost_usd DECIMAL(10,6),
+
+
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+
+
+    FOREIGN KEY (user_id)
+
+    REFERENCES users(user_id)
+
+    ON DELETE CASCADE
+
+);
+
 ```
 
-Agent:
-- Chooses `run_python()`
-- Generates Python code
-- Executes code in Docker
-- Returns result
 
-Response:
+
+---
+
+
+
+## API Endpoint
+
+
+
+### POST /chat
+
+
+
+Request
+
+
+
+```json
+
+{
+
+    "user_id": "sarvesh",
+
+    "message": "Calculate factorial of 5"
+
+}
+
 ```
-120
+
+
+
+Response
+
+
+
+```json
+
+{
+
+    "response": "120"
+
+}
+
 ```
 
-## Why Docker?
 
-The agent executes AI-generated Python code. Docker provides an isolated sandbox environment that prevents generated code from directly affecting the host machine.
+
+---
+
+
+
+## Token Tracking
+
+
+
+The application records:
+
+
+
+* Input Tokens
+
+* Cached Input Tokens
+
+* Output Tokens
+
+* Cost (USD)
+
+
+
+### Note
+
+
+
+Cached Input Tokens are currently reported as 0 because Ollama does not expose prompt caching usage in this setup.
+
+
+
+Conversation history is stored in PostgreSQL and resent to the model, increasing Input Tokens, but no provider-side cached tokens are reused.
+
+
+
+---
+
+
+
+## Running PostgreSQL
+
+
+
+Start container:
+
+
+
+```bash
+
+docker start postgres-kg
+
+```
+
+
+
+Connect:
+
+
+
+```bash
+
+docker exec -it postgres-kg psql -U postgres -d sandbox_agent
+
+```
+
+
+
+---
+
+
+
+## Running FastAPI
+
+
+
+```bash
+
+uvicorn app:app --reload
+
+```
+
+
+
+Swagger UI:
+
+
+
+```text
+
+http://127.0.0.1:8000/docs
+
+```
+
+
+
+---
+
+
+
+## Running Gradio Dashboard
+
+
+
+```bash
+
+python dashboard.py
+
+```
+
+
+
+Dashboard:
+
+
+
+```text
+
+http://127.0.0.1:7860
+
+```
+
+
+
+---
+
+
+
+## Technologies Used
+
+
+
+* Python
+
+* FastAPI
+
+* PydanticAI
+
+* Ollama
+
+* Qwen3:8B
+
+* Docker
+
+* PostgreSQL
+
+* Gradio
+
+* Pandas
+
+
+
+---
+
+
+
+## Future Improvements
+
+
+
+* User Authentication
+
+* Vector Database Memory
+
+* Document Upload Support
+
+* RAG Pipeline
+
+* Multi-Agent Support
+
+* Real Cost Calculation for Cloud Models
+
+* Advanced Analytics Dashboard
+
+* Prompt Caching Support
+
+
+
+give this as git hub code
