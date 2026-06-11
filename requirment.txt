@@ -2,3 +2,5 @@ fastapi
 uvicorn
 pydantic-ai
 docker
+gradio
+postgres
