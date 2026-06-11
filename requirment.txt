@@ -4,3 +4,4 @@ pydantic-ai
 docker
 gradio
 postgres
+psycopg2-binary
